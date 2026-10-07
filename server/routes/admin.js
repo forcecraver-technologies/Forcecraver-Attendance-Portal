@@ -517,10 +517,32 @@ router.post('/employees', requireDeveloper, async (req, res) => {
       return res.status(409).json({ error: 'User with this email already exists' });
     }
 
-    const countRow = await db.get('SELECT COUNT(*) as count FROM users');
-    const totalUsers = parseInt(countRow.count, 10) || 0;
-    const nextEmpNum = String(totalUsers + 1).padStart(3, '0');
-    const employee_id = `EMP${nextEmpNum}`;
+    // Auto-generate unique employee ID by scanning existing IDs
+    const empRows = await db.all("SELECT employee_id FROM users WHERE employee_id LIKE 'EMP%'");
+    let maxEmpNum = 0;
+    for (const r of empRows) {
+      if (r.employee_id) {
+        const match = r.employee_id.match(/^EMP(\d+)$/i);
+        if (match) {
+          const val = parseInt(match[1], 10);
+          if (!isNaN(val) && val > maxEmpNum) {
+            maxEmpNum = val;
+          }
+        }
+      }
+    }
+
+    let nextEmpVal = maxEmpNum + 1;
+    let employee_id = `EMP${String(nextEmpVal).padStart(3, '0')}`;
+    while (true) {
+      const candidateId = `EMP${String(nextEmpVal).padStart(3, '0')}`;
+      const existingId = await db.get('SELECT id FROM users WHERE employee_id = ?', [candidateId]);
+      if (!existingId) {
+        employee_id = candidateId;
+        break;
+      }
+      nextEmpVal++;
+    }
 
     const salt = bcrypt.genSaltSync(10);
     const hashedPassword = bcrypt.hashSync(password, salt);
