@@ -260,7 +260,7 @@ export function MonthlyReport() {
             <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200"><strong>P</strong> Present (Full Day)</span>
             <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200"><strong>H1</strong> 1st Half (10-2)</span>
             <span className="px-1.5 py-0.5 rounded bg-orange-50 text-orange-800 border border-orange-200"><strong>H2</strong> 2nd Half (2-7)</span>
-            <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300"><strong>HOL</strong> Holiday (Paid Present)</span>
+            <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300"><strong>HOL</strong> Holiday (Paid Working Day)</span>
             <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500"><strong>-</strong> Unmarked</span>
           </div>
         </div>
@@ -359,7 +359,7 @@ export function MonthlyReport() {
                               disabled={!isDeveloper || isHolidayCell}
                               title={
                                 isHolidayCell
-                                  ? `🎉 Forcecraver Holiday: ${wDay.holidayName || dInfo?.holidayName || 'Official Holiday'} (Paid Working Day - Counted as Present)`
+                                  ? `🎉 Forcecraver Holiday: ${wDay.holidayName || dInfo?.holidayName || 'Official Holiday'} (Paid Working Day)`
                                   : isDeveloper 
                                     ? `Click to Edit Attendance for ${emp.name} on ${wDay.dayNumber} ${wDay.dayName} (${dInfo ? dInfo.status : 'Unmarked'})` 
                                     : `${wDay.dayNumber} ${wDay.dayName}: ${dInfo ? dInfo.status : 'Unmarked'}`

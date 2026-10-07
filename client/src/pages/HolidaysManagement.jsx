@@ -86,7 +86,7 @@ export function HolidaysManagement() {
             Official Forcecraver Holidays
           </h1>
           <p className="text-xs text-slate-500">
-            Holidays falling on weekdays (Mon - Fri) are considered working days, and all employees are automatically marked Present (Paid Holiday).
+            Holidays falling on weekdays (Mon - Fri) are included in the working days schedule.
           </p>
         </div>
       </div>

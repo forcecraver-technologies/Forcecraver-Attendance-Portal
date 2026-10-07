@@ -35,11 +35,9 @@ router.get('/today', authenticateToken, async (req, res) => {
         id: `holiday-${holiday.id}`,
         user_id: req.user.id,
         date: todayStr,
-        status: 'present',
-        work_mode: 'office',
-        check_in_time: '10:00 AM',
-        check_out_time: '07:00 PM',
-        notes: `Official Holiday: ${holiday.name} (Auto-Present)`,
+        status: 'holiday',
+        holiday_name: holiday.name,
+        notes: `Official Holiday: ${holiday.name}`,
         is_holiday: true,
       };
     }
@@ -47,7 +45,7 @@ router.get('/today', authenticateToken, async (req, res) => {
     if (weekend) {
       restrictionReason = `Today is ${dayName} (Weekend). Attendance portal only accepts attendance Monday to Friday.`;
     } else if (holiday) {
-      restrictionReason = `Today is an Official Forcecraver Holiday: ${holiday.name}. All employees are automatically marked Present (Paid Working Day).`;
+      restrictionReason = `Today is an Official Forcecraver Holiday: ${holiday.name}. Included as a working day. Attendance marking is not required.`;
     }
 
     res.json({
@@ -230,13 +228,12 @@ router.get('/my-stats', authenticateToken, async (req, res) => {
       }
     });
 
-    // Weekday holidays count as present working days by default
-    const totalPresentDays = presentCount + holidaysCount;
+    // Weekday holidays count as paid days in effective present calculation
     const totalHalfDays = halfDay1stCount + halfDay2ndCount;
     const clSummary = await getUserClStats(req.user.id, year, month);
 
-    // Effective present days: Total Present (including weekday holidays) + Half Present (0.5) + Casual Leave Adjusted (Paid Leave)
-    const effectivePresentDays = Math.round((totalPresentDays + (totalHalfDays * 0.5) + clSummary.cl_adjusted) * 10) / 10;
+    // Effective present days: Full Present + Half Present (0.5) + Casual Leave Adjusted + Paid Weekday Holidays (1.0)
+    const effectivePresentDays = Math.round((presentCount + (totalHalfDays * 0.5) + clSummary.cl_adjusted + holidaysCount) * 10) / 10;
 
     // Attendance percentage based on elapsed working days
     const attendancePercentage = elapsedWorkingDays > 0
@@ -254,13 +251,11 @@ router.get('/my-stats', authenticateToken, async (req, res) => {
       const holidayObj = holidaysRows.find(h => h.date === dateStr);
       let att = recordMap[dateStr] || null;
 
-      // If holiday falls on a weekday and no manual override, default to present!
+      // If holiday falls on a weekday and no manual override, status is 'holiday'
       if (!isWeekendDay && isHolidayDay && !att) {
         att = {
-          status: 'present',
-          work_mode: 'office',
-          check_in_time: '10:00 AM',
-          check_out_time: '07:00 PM',
+          status: 'holiday',
+          holiday_name: holidayObj?.name || 'Holiday',
           notes: holidayObj?.name ? `Official Holiday: ${holidayObj.name}` : 'Official Holiday',
           is_holiday: true,
         };
@@ -272,7 +267,7 @@ router.get('/my-stats', authenticateToken, async (req, res) => {
         dayOfWeek,
         dayName: dayDate.toLocaleDateString('en-US', { weekday: 'short' }),
         isWeekend: isWeekendDay,
-        isWorkingDay: !isWeekendDay,
+        isWorkingDay: !isWeekendDay, // Monday to Friday is a working day (includes weekday holidays)
         isHoliday: isHolidayDay,
         holidayName: holidayObj ? holidayObj.name : null,
         attendance: att,
@@ -288,8 +283,7 @@ router.get('/my-stats', authenticateToken, async (req, res) => {
       elapsedWorkingDays,
       clSummary,
       stats: {
-        presentCount: totalPresentDays,
-        workedPresentCount: presentCount,
+        presentCount,
         paidHolidayDays: holidaysCount,
         halfDay1stCount,
         halfDay2ndCount,
@@ -300,7 +294,7 @@ router.get('/my-stats', authenticateToken, async (req, res) => {
         remainingCl: clSummary.remaining_cl,
         effectivePresentDays,
         absentCount,
-        unmarkedCount: Math.max(0, elapsedWorkingDays - (presentCount + totalHalfDays + absentCount)),
+        unmarkedCount: Math.max(0, elapsedWorkingDays - (presentCount + totalHalfDays + absentCount + holidaysCount)),
         attendancePercentage,
       },
       records,

@@ -133,6 +133,19 @@ export function AdminDashboard({ onNavigateToMatrix }) {
         </div>
       </div>
 
+      {/* Holiday Announcement Banner */}
+      {overview?.isHoliday && (
+        <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 flex items-center gap-3 text-xs text-purple-900 font-medium">
+          <Palmtree className="w-5 h-5 text-purple-600 shrink-0" />
+          <div>
+            <strong>Official Forcecraver Holiday: {overview.holidayInfo?.name}</strong>
+            <p className="text-[11px] text-purple-700 mt-0.5">
+              This holiday is included in the working days schedule. Attendance marking is not required.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* METRIC CARDS */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
         <StatsCard
@@ -272,7 +285,11 @@ export function AdminDashboard({ onNavigateToMatrix }) {
 
                       <td className="py-3">
                         {att ? (
-                          att.status === 'present' ? (
+                          att.status === 'holiday' ? (
+                            <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-purple-50 text-purple-800 border border-purple-200">
+                              🌴 Holiday ({att.holiday_name || 'Official Holiday'})
+                            </span>
+                          ) : att.status === 'present' ? (
                             <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
                               Full Day
                             </span>
@@ -321,6 +338,7 @@ export function AdminDashboard({ onNavigateToMatrix }) {
 
                       <td className="py-3 text-slate-600">
                         {att ? (
+                          att.status === 'holiday' ? 'Official Holiday' :
                           att.status === 'present' ? '10:00 AM - 07:00 PM' :
                           att.status === 'half_day' ? (att.half_day_slot === '1st_half' ? '10:00 AM - 02:00 PM' : '02:00 PM - 07:00 PM') :
                           'Full Day Leave'

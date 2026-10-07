@@ -67,18 +67,16 @@ router.get('/today-overview', async (req, res) => {
         let att = recordMap[emp.id] || null;
         const clStats = await getUserClStats(emp.id, targetYear, targetMonth);
 
-        // If today is a weekday holiday and no manual override, default to present!
+        // If today is a weekday holiday and no manual override, status is 'holiday'!
         if (isWeekdayHoliday && !att) {
           att = {
             id: `holiday-${holiday.id}-${emp.id}`,
             user_id: emp.id,
             date: dateStr,
-            status: 'present',
-            work_mode: 'office',
-            check_in_time: '10:00 AM',
-            check_out_time: '07:00 PM',
-            notes: `Official Holiday: ${holiday.name} (Auto-Present)`,
-            is_holiday_present: true,
+            status: 'holiday',
+            holiday_name: holiday.name,
+            notes: `Official Holiday: ${holiday.name}`,
+            is_holiday: true,
           };
         }
 
@@ -239,9 +237,8 @@ router.get('/monthly-matrix', async (req, res) => {
         });
 
         const clStats = await getUserClStats(emp.id, year, month);
-        const totalPresentWithHolidays = presentCount + paidHolidayDays;
         const totalHalfDays = halfDay1stCount + halfDay2ndCount;
-        const effectivePresent = Math.round((totalPresentWithHolidays + (totalHalfDays * 0.5) + clStats.cl_adjusted) * 10) / 10;
+        const effectivePresent = Math.round((presentCount + (totalHalfDays * 0.5) + clStats.cl_adjusted + paidHolidayDays) * 10) / 10;
         const percentage = elapsedWorkingDays > 0
           ? Math.min(100, Math.round((effectivePresent / elapsedWorkingDays) * 100))
           : 0;
@@ -251,8 +248,7 @@ router.get('/monthly-matrix', async (req, res) => {
           days: daysData,
           clStats,
           stats: {
-            presentCount: totalPresentWithHolidays,
-            workedPresentCount: presentCount,
+            presentCount,
             halfDay1stCount,
             halfDay2ndCount,
             totalHalfDays,
@@ -263,7 +259,7 @@ router.get('/monthly-matrix', async (req, res) => {
             effectivePresent,
             absentCount,
             paidHolidayDays,
-            unmarkedCount: Math.max(0, elapsedWorkingDays - (totalPresentWithHolidays + totalHalfDays + absentCount)),
+            unmarkedCount: Math.max(0, elapsedWorkingDays - (presentCount + totalHalfDays + absentCount + paidHolidayDays)),
             percentage,
           },
         };
@@ -365,11 +361,10 @@ router.get('/employees/:id/calendar', async (req, res) => {
       }
     });
 
-    const totalPresentDays = presentCount + holidaysCount;
     const totalHalfDays = halfDay1stCount + halfDay2ndCount;
     const clSummary = await getUserClStats(targetUserId, year, month);
 
-    const effectivePresentDays = Math.round((totalPresentDays + (totalHalfDays * 0.5) + clSummary.cl_adjusted) * 10) / 10;
+    const effectivePresentDays = Math.round((presentCount + (totalHalfDays * 0.5) + clSummary.cl_adjusted + holidaysCount) * 10) / 10;
     const attendancePercentage = elapsedWorkingDays > 0
       ? Math.min(100, Math.round((effectivePresentDays / elapsedWorkingDays) * 100))
       : 0;
@@ -384,13 +379,11 @@ router.get('/employees/:id/calendar', async (req, res) => {
       const holidayObj = holidaysRows.find(h => h.date === dateStr);
       let att = recordMap[dateStr] || null;
 
-      // If holiday falls on a weekday and no manual override, default to present!
+      // If holiday falls on a weekday and no manual override, status is 'holiday'
       if (!isWeekendDay && isHolidayDay && !att) {
         att = {
-          status: 'present',
-          work_mode: 'office',
-          check_in_time: '10:00 AM',
-          check_out_time: '07:00 PM',
+          status: 'holiday',
+          holiday_name: holidayObj?.name || 'Holiday',
           notes: holidayObj?.name ? `Official Holiday: ${holidayObj.name}` : 'Official Holiday',
           is_holiday: true,
         };
@@ -402,7 +395,7 @@ router.get('/employees/:id/calendar', async (req, res) => {
         dayOfWeek,
         dayName: dayDate.toLocaleDateString('en-US', { weekday: 'short' }),
         isWeekend: isWeekendDay,
-        isWorkingDay: !isWeekendDay,
+        isWorkingDay: !isWeekendDay, // Monday to Friday is a working day (includes weekday holidays)
         isHoliday: isHolidayDay,
         holidayName: holidayObj ? holidayObj.name : null,
         attendance: att,
@@ -419,8 +412,7 @@ router.get('/employees/:id/calendar', async (req, res) => {
       elapsedWorkingDays,
       clSummary,
       stats: {
-        presentCount: totalPresentDays,
-        workedPresentCount: presentCount,
+        presentCount,
         paidHolidayDays: holidaysCount,
         halfDay1stCount,
         halfDay2ndCount,
@@ -431,7 +423,7 @@ router.get('/employees/:id/calendar', async (req, res) => {
         remainingCl: clSummary.remaining_cl,
         effectivePresentDays,
         absentCount,
-        unmarkedCount: Math.max(0, elapsedWorkingDays - (presentCount + totalHalfDays + absentCount)),
+        unmarkedCount: Math.max(0, elapsedWorkingDays - (presentCount + totalHalfDays + absentCount + holidaysCount)),
         attendancePercentage,
       },
       records,
