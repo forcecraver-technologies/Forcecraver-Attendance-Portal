@@ -43,7 +43,7 @@ export const api = {
   changePassword: (passwords) => request('/auth/password', { method: 'PUT', body: JSON.stringify(passwords) }),
 
   // Employee Attendance
-  getTodayAttendance: () => request('/attendance/today'),
+  getTodayAttendance: (date) => request(`/attendance/today${date ? `?date=${date}` : ''}`),
   markAttendance: (payload) => request('/attendance/mark', { method: 'POST', body: JSON.stringify(payload) }),
   getMyStats: (year, month) => request(`/attendance/my-stats?year=${year}&month=${month}`),
 

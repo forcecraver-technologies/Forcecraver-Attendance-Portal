@@ -127,6 +127,30 @@ const TIMING_CONFIG = {
   }
 };
 
+// Calculate day difference between today and a target date (in calendar days)
+function getDaysDifference(targetDateStr, baseDate = new Date()) {
+  const [y, m, d] = targetDateStr.split('-').map(Number);
+  const target = new Date(y, m - 1, d);
+  target.setHours(0, 0, 0, 0);
+
+  const base = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+  base.setHours(0, 0, 0, 0);
+
+  return Math.round((base.getTime() - target.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+// Check if a target date is within the allowed update window (default 5 days)
+function isWithinUpdateWindow(targetDateStr, maxDays = 5, baseDate = new Date()) {
+  const diff = getDaysDifference(targetDateStr, baseDate);
+  return {
+    diffDays: diff,
+    isFuture: diff < 0,
+    isExpired: diff > maxDays,
+    isValid: diff >= 0 && diff <= maxDays,
+    daysRemaining: Math.max(0, maxDays - diff),
+  };
+}
+
 module.exports = {
   formatDate,
   isWeekend,
@@ -134,5 +158,7 @@ module.exports = {
   getMonthWorkingDays,
   getElapsedWorkingDays,
   getCurrentTimeString,
+  getDaysDifference,
+  isWithinUpdateWindow,
   TIMING_CONFIG,
 };

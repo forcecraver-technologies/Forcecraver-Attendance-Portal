@@ -17,7 +17,10 @@ import {
   History,
   FileText,
   ArrowRight,
-  ArrowLeft
+  ArrowLeft,
+  Lock,
+  Edit3,
+  Timer
 } from 'lucide-react';
 import { StatsCard } from '../components/StatsCard';
 
@@ -40,6 +43,42 @@ export function EmployeeDashboard({ activeTab = 'emp-dashboard', setActiveTab })
     }
   };
 
+  const getTodayDateString = () => {
+    const t = new Date();
+    const y = t.getFullYear();
+    const m = String(t.getMonth() + 1).padStart(2, '0');
+    const d = String(t.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  const getAvailableUpdateDates = () => {
+    const list = [];
+    const base = new Date();
+    for (let i = 0; i <= 5; i++) {
+      const d = new Date(base);
+      d.setDate(base.getDate() - i);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const dateStr = `${y}-${m}-${day}`;
+      const dayOfWeek = d.getDay();
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      list.push({
+        date: dateStr,
+        label: i === 0 ? 'Today' : i === 1 ? 'Yesterday' : `${i} days ago`,
+        dayName: d.toLocaleDateString('en-US', { weekday: 'short' }),
+        formattedDate: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        isWeekend,
+        daysAgo: i,
+        daysRemaining: 5 - i,
+      });
+    }
+    return list;
+  };
+
+  const availableDates = getAvailableUpdateDates();
+  const [selectedDate, setSelectedDate] = useState(getTodayDateString);
+
   const [todayInfo, setTodayInfo] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState('present'); // 'present', 'half_day_1', 'half_day_2', 'absent'
   const [selectedWorkMode, setSelectedWorkMode] = useState('office'); // 'office', 'remote'
@@ -54,9 +93,9 @@ export function EmployeeDashboard({ activeTab = 'emp-dashboard', setActiveTab })
   const [monthlyStats, setMonthlyStats] = useState(null);
   const [loadingStats, setLoadingStats] = useState(true);
 
-  const fetchTodayStatus = async () => {
+  const fetchTargetDateStatus = async (targetDate = selectedDate) => {
     try {
-      const data = await api.getTodayAttendance();
+      const data = await api.getTodayAttendance(targetDate);
       setTodayInfo(data);
       if (data.attendance) {
         if (data.attendance.status === 'half_day') {
@@ -71,7 +110,7 @@ export function EmployeeDashboard({ activeTab = 'emp-dashboard', setActiveTab })
         setNotes('');
       }
     } catch (err) {
-      console.error('Failed to load today attendance:', err);
+      console.error('Failed to load attendance for date:', targetDate, err);
     }
   };
 
@@ -88,8 +127,10 @@ export function EmployeeDashboard({ activeTab = 'emp-dashboard', setActiveTab })
   };
 
   useEffect(() => {
-    fetchTodayStatus();
-  }, []);
+    fetchTargetDateStatus(selectedDate);
+    setActionMessage(null);
+    setErrorMessage(null);
+  }, [selectedDate]);
 
   useEffect(() => {
     fetchMonthlyData(selectedYear, selectedMonth);
@@ -140,6 +181,7 @@ export function EmployeeDashboard({ activeTab = 'emp-dashboard', setActiveTab })
       }
 
       const payload = {
+        customDate: selectedDate,
         status: finalStatus,
         half_day_slot: finalSlot,
         work_mode: selectedWorkMode,
@@ -153,7 +195,7 @@ export function EmployeeDashboard({ activeTab = 'emp-dashboard', setActiveTab })
         confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
       } catch (err) {}
 
-      await fetchTodayStatus();
+      await fetchTargetDateStatus(selectedDate);
       await fetchMonthlyData(selectedYear, selectedMonth);
     } catch (err) {
       setErrorMessage(err.message || 'Failed to update attendance');
@@ -163,7 +205,7 @@ export function EmployeeDashboard({ activeTab = 'emp-dashboard', setActiveTab })
   };
 
   const handleResetToUnmarked = async () => {
-    if (!window.confirm("Are you sure you want to reset today's attendance back to Unmarked?")) {
+    if (!window.confirm(`Are you sure you want to reset attendance for ${selectedDate} back to Unmarked?`)) {
       return;
     }
 
@@ -172,11 +214,11 @@ export function EmployeeDashboard({ activeTab = 'emp-dashboard', setActiveTab })
     setErrorMessage(null);
 
     try {
-      const res = await api.markAttendance({ status: 'unmarked' });
+      const res = await api.markAttendance({ status: 'unmarked', customDate: selectedDate });
       setActionMessage(res.message || 'Attendance reset to Unmarked');
       setSelectedStatus('present');
       setNotes('');
-      await fetchTodayStatus();
+      await fetchTargetDateStatus(selectedDate);
       await fetchMonthlyData(selectedYear, selectedMonth);
     } catch (err) {
       setErrorMessage(err.message || 'Failed to reset attendance');
@@ -280,12 +322,94 @@ export function EmployeeDashboard({ activeTab = 'emp-dashboard', setActiveTab })
       </div>
 
       {/* ========================================================================= */}
-      {/* TAB 1: TODAY'S ATTENDANCE VIEW                                            */}
+      {/* TAB 1: ATTENDANCE VIEW (5-DAY WINDOW)                                     */}
       {/* ========================================================================= */}
       {currentTab === 'emp-dashboard' && (
         <div className="space-y-6">
           
-          {/* TODAY'S ATTENDANCE CARD - Persistently Colored Container */}
+          {/* 5-DAY ATTENDANCE UPDATE WINDOW BAR */}
+          <div className="bg-white rounded-xl border border-blue-200/90 p-4 shadow-xs space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center shrink-0">
+                  <Timer className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-sm font-bold text-slate-900">
+                      5-Day Attendance Update Window
+                    </h3>
+                    <span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full border border-blue-200">
+                      5-Day Rule Active
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Employees have a 5-day window to mark or update attendance. Choose any date below to view or edit.
+                  </p>
+                </div>
+              </div>
+
+              {todayInfo?.windowInfo && (
+                <div className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 shrink-0">
+                  <Clock className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Date: <strong>{selectedDate}</strong></span>
+                  {todayInfo.windowInfo.isExpired ? (
+                    <span className="text-rose-600 font-bold ml-1 flex items-center gap-1">
+                      <Lock className="w-3 h-3" /> Window Expired
+                    </span>
+                  ) : (
+                    <span className="text-emerald-700 font-bold ml-1 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                      ⏱️ {todayInfo.windowInfo.daysRemaining} days left to update
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Quick Date Pills for the 5-day window */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 scrollbar-thin">
+              {availableDates.map(item => {
+                const isSelected = selectedDate === item.date;
+                return (
+                  <button
+                    key={item.date}
+                    type="button"
+                    onClick={() => setSelectedDate(item.date)}
+                    className={`flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer shrink-0 border ${
+                      isSelected
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-sm font-bold'
+                        : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                    }`}
+                  >
+                    <div className="text-left">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold">{item.label}</span>
+                        {item.isWeekend && (
+                          <span className={`text-[9px] px-1.5 py-0.2 rounded font-normal ${
+                            isSelected ? 'bg-blue-700 text-white' : 'bg-amber-100 text-amber-800'
+                          }`}>
+                            Weekend
+                          </span>
+                        )}
+                        {!item.isWeekend && item.daysAgo > 0 && (
+                          <span className={`text-[9px] px-1 py-0.2 rounded font-semibold ${
+                            isSelected ? 'bg-blue-700 text-blue-100' : 'bg-slate-100 text-slate-500'
+                          }`}>
+                            {item.daysRemaining}d left
+                          </span>
+                        )}
+                      </div>
+                      <div className={`text-[10px] mt-0.5 ${isSelected ? 'text-blue-100' : 'text-slate-400'}`}>
+                        {item.dayName}, {item.formattedDate}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ATTENDANCE CARD - Persistently Colored Container */}
           <div className={`rounded-2xl border transition-all p-6 space-y-5 ${
             isAlreadyMarkedToday && todayInfo.attendance.status === 'present'
               ? 'bg-gradient-to-b from-emerald-50/70 via-emerald-50/30 to-white border-emerald-300 ring-2 ring-emerald-500/20 shadow-md'
@@ -299,26 +423,31 @@ export function EmployeeDashboard({ activeTab = 'emp-dashboard', setActiveTab })
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-base font-bold text-slate-900">
-                    Today's Attendance Marking
+                    {selectedDate === getTodayDateString() ? "Today's Attendance Marking" : `Attendance Update for ${selectedDate}`}
                   </h2>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                    isAlreadyMarkedToday && todayInfo.attendance.status === 'present'
+                    isAlreadyMarkedToday && todayInfo?.attendance?.status === 'present'
                       ? 'bg-emerald-100 text-emerald-900 border border-emerald-200'
-                      : isAlreadyMarkedToday && todayInfo.attendance.status === 'half_day'
+                      : isAlreadyMarkedToday && todayInfo?.attendance?.status === 'half_day'
                       ? 'bg-amber-100 text-amber-900 border border-amber-200'
-                      : isAlreadyMarkedToday && todayInfo.attendance.status === 'absent'
+                      : isAlreadyMarkedToday && todayInfo?.attendance?.status === 'absent'
                       ? 'bg-rose-100 text-rose-900 border border-rose-200'
                       : 'bg-slate-100 text-slate-700'
                   }`}>
-                    {isAlreadyMarkedToday ? 'Attendance Recorded' : 'Daily Schedule'}
+                    {isAlreadyMarkedToday ? 'Attendance Recorded' : 'Pending Regularization'}
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-0.5">
                   {todayInfo?.dayName}, {todayInfo?.date}
+                  {selectedDate !== getTodayDateString() && (
+                    <span className="ml-2 font-medium text-blue-600">
+                      (Past date within 5-day window)
+                    </span>
+                  )}
                 </p>
               </div>
 
-              {/* Today's Status Pill */}
+              {/* Status Pill */}
               <div>
                 {todayInfo?.isWeekend ? (
                   <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 shadow-2xs">
@@ -327,6 +456,10 @@ export function EmployeeDashboard({ activeTab = 'emp-dashboard', setActiveTab })
                 ) : todayInfo?.isHoliday ? (
                   <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-purple-50 text-purple-800 border border-purple-200 shadow-2xs">
                     <Palmtree className="w-4 h-4 text-purple-600" /> Holiday: {todayInfo?.holidayInfo?.name || 'Official Holiday'}
+                  </span>
+                ) : todayInfo?.windowInfo?.isExpired ? (
+                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-rose-50 text-rose-800 border border-rose-200 shadow-2xs">
+                    <Lock className="w-4 h-4 text-rose-600" /> 5-Day Window Expired (Locked)
                   </span>
                 ) : isAlreadyMarkedToday ? (
                   <span className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold shadow-xs ring-2 ${
@@ -355,14 +488,21 @@ export function EmployeeDashboard({ activeTab = 'emp-dashboard', setActiveTab })
             {todayInfo?.isWeekend && (
               <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 flex items-center gap-2">
                 <Coffee className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>Today is <strong>{todayInfo.dayName}</strong>. Attendance is strictly scheduled Monday to Friday. Enjoy your weekend!</span>
+                <span>{todayInfo?.date} is <strong>{todayInfo.dayName}</strong>. Attendance portal only accepts attendance Monday to Friday.</span>
               </div>
             )}
 
             {todayInfo?.isHoliday && (
               <div className="p-4 bg-purple-50 rounded-xl border border-purple-200 text-xs text-purple-800 flex items-center gap-2">
                 <Palmtree className="w-4 h-4 text-purple-600 shrink-0" />
-                <span>Today is a Forcecraver Holiday: <strong>{todayInfo?.holidayInfo?.name}</strong>. Included in the working days schedule. Attendance marking is not required.</span>
+                <span>{todayInfo?.date} is a Forcecraver Holiday: <strong>{todayInfo?.holidayInfo?.name}</strong>. Attendance marking is not required.</span>
+              </div>
+            )}
+
+            {todayInfo?.windowInfo?.isExpired && (
+              <div className="p-4 bg-rose-50 rounded-xl border border-rose-200 text-xs text-rose-800 flex items-center gap-2">
+                <Lock className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>The 5-day attendance update window for <strong>{todayInfo?.date}</strong> has expired ({todayInfo?.windowInfo?.diffDays} days ago). Past records cannot be updated after 5 days.</span>
               </div>
             )}
 
@@ -397,7 +537,7 @@ export function EmployeeDashboard({ activeTab = 'emp-dashboard', setActiveTab })
                         todayInfo.attendance.status === 'present' ? 'text-emerald-700' : todayInfo.attendance.status === 'half_day' ? 'text-amber-700' : 'text-rose-700'
                       }`} />
                       <span>
-                        Status for today: <strong>{
+                        Status for {selectedDate}: <strong>{
                           todayInfo.attendance.status === 'present'
                             ? 'Full Day (10:00 AM - 07:00 PM)'
                             : todayInfo.attendance.status === 'half_day'
@@ -415,7 +555,7 @@ export function EmployeeDashboard({ activeTab = 'emp-dashboard', setActiveTab })
                 {/* Attendance Options - 4 Distinctly Colored Cards */}
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
-                    Choose Attendance Option for Today:
+                    Choose Attendance Option for {selectedDate === getTodayDateString() ? 'Today' : selectedDate}:
                   </label>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -622,14 +762,14 @@ export function EmployeeDashboard({ activeTab = 'emp-dashboard', setActiveTab })
                         onClick={handleResetToUnmarked}
                         disabled={submitting}
                         className="inline-flex items-center gap-1.5 px-3.5 py-2 text-slate-600 hover:text-rose-700 bg-slate-100 hover:bg-rose-50 border border-slate-200 rounded-lg text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
-                        title="Clear and reset today's record back to Unmarked"
+                        title={`Clear and reset ${selectedDate} record back to Unmarked`}
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
                         <span>Reset to Unmarked</span>
                       </button>
                     )}
                     <span className="text-[11px] text-slate-400">
-                      You can update this record anytime before shift ends.
+                      Attendance can be marked or updated anytime within the 5-day window.
                     </span>
                   </div>
 
@@ -649,8 +789,8 @@ export function EmployeeDashboard({ activeTab = 'emp-dashboard', setActiveTab })
                       {submitting 
                         ? 'Saving...' 
                         : isAlreadyMarkedToday 
-                          ? 'Update Attendance' 
-                          : 'Mark Attendance'}
+                          ? `Update Attendance (${selectedDate})` 
+                          : `Mark Attendance (${selectedDate})`}
                     </span>
                   </button>
                 </div>
@@ -849,17 +989,38 @@ export function EmployeeDashboard({ activeTab = 'emp-dashboard', setActiveTab })
                 return (
                   <div
                     key={day.date}
-                    className={`min-h-[60px] p-1.5 rounded-lg border flex flex-col justify-between ${cellStyle}`}
+                    className={`min-h-[64px] p-1.5 rounded-lg border flex flex-col justify-between transition-all ${cellStyle} ${
+                      day.isEditable ? 'ring-1 ring-blue-400 hover:shadow-xs cursor-pointer' : ''
+                    }`}
+                    onClick={() => {
+                      if (day.isEditable) {
+                        setSelectedDate(day.date);
+                        handleTabChange('emp-dashboard');
+                      }
+                    }}
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-bold">{day.dayNumber}</span>
                       <span className="text-[9px] text-slate-400">{day.dayName}</span>
                     </div>
-                    {badge && (
-                      <span className="text-[10px] font-semibold truncate text-center block py-0.5 rounded bg-white/60">
-                        {badge}
-                      </span>
-                    )}
+                    <div>
+                      {badge && (
+                        <span className="text-[10px] font-semibold truncate text-center block py-0.5 rounded bg-white/60">
+                          {badge}
+                        </span>
+                      )}
+                      {day.isEditable && (
+                        <span className="text-[9px] font-bold text-blue-700 bg-blue-100 mt-1 px-1 py-0.5 rounded flex items-center justify-center gap-0.5" title={`5-day update window: ${day.windowInfo?.daysRemaining ?? 0} days remaining to update`}>
+                          <Edit3 className="w-2.5 h-2.5" />
+                          <span>Edit ({day.windowInfo?.daysRemaining ?? 0}d left)</span>
+                        </span>
+                      )}
+                      {day.windowInfo?.isExpired && !day.isWeekend && !day.isHoliday && (
+                        <span className="text-[9px] text-slate-400 flex items-center justify-center gap-0.5 mt-0.5" title="5-day update window expired">
+                          <Lock className="w-2.5 h-2.5" /> Locked
+                        </span>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -891,12 +1052,13 @@ export function EmployeeDashboard({ activeTab = 'emp-dashboard', setActiveTab })
                     <th className="pb-2.5">Work Mode</th>
                     <th className="pb-2.5">Notes / Remarks</th>
                     <th className="pb-2.5 text-right pr-2">Impact on CL</th>
+                    <th className="pb-2.5 text-center">5-Day Update Window</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {(!monthlyStats?.calendarDays || monthlyStats.calendarDays.filter(d => !d.isWeekend).length === 0) ? (
                     <tr>
-                      <td colSpan={7} className="py-6 text-center text-slate-400">
+                      <td colSpan={8} className="py-6 text-center text-slate-400">
                         No working days in this period.
                       </td>
                     </tr>
@@ -965,6 +1127,28 @@ export function EmployeeDashboard({ activeTab = 'emp-dashboard', setActiveTab })
                               <span className="text-amber-600 font-bold">-0.5 CL</span>
                             ) : (
                               <span className="text-slate-400">0.0</span>
+                            )}
+                          </td>
+                          <td className="py-2.5 text-center">
+                            {day.isEditable ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedDate(day.date);
+                                  handleTabChange('emp-dashboard');
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-blue-700 hover:text-white bg-blue-50 hover:bg-blue-600 border border-blue-200 rounded-lg transition-all cursor-pointer shadow-2xs"
+                                title={`Mark or update attendance for ${day.date} (${day.windowInfo?.daysRemaining ?? 0} days left)`}
+                              >
+                                <Edit3 className="w-3 h-3" />
+                                <span>Update ({day.windowInfo?.daysRemaining ?? 0}d left)</span>
+                              </button>
+                            ) : day.windowInfo?.isExpired && !day.isWeekend && !day.isHoliday ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium text-slate-400 bg-slate-100 rounded-md">
+                                <Lock className="w-3 h-3" /> Window Expired
+                              </span>
+                            ) : (
+                              <span className="text-slate-300 text-[11px]">—</span>
                             )}
                           </td>
                         </tr>

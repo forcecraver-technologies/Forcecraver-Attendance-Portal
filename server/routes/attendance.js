@@ -10,23 +10,32 @@ const {
   getMonthWorkingDays,
   getElapsedWorkingDays,
   getCurrentTimeString,
+  getDaysDifference,
+  isWithinUpdateWindow,
   TIMING_CONFIG,
 } = require('../utils/dateUtils');
 
-// GET /api/attendance/today - Get today's attendance status & validation info for current user
+// GET /api/attendance/today - Get attendance status & validation info for current user (supports ?date=YYYY-MM-DD)
 router.get('/today', authenticateToken, async (req, res) => {
   try {
     const today = new Date();
     const todayStr = formatDate(today);
-    const dayName = getDayName(todayStr);
-    const weekend = isWeekend(todayStr);
+    const targetDateStr = req.query.date || todayStr;
+    const dayName = getDayName(targetDateStr);
+    const weekend = isWeekend(targetDateStr);
+
+    const windowInfo = isWithinUpdateWindow(targetDateStr, 5, today);
 
     // Check if company holiday
-    const holiday = await db.get('SELECT * FROM holidays WHERE date = ?', [todayStr]);
-    const record = await db.get('SELECT * FROM attendance WHERE user_id = ? AND date = ?', [req.user.id, todayStr]);
-    const clSummary = await getUserClStats(req.user.id, today.getFullYear(), today.getMonth() + 1);
+    const holiday = await db.get('SELECT * FROM holidays WHERE date = ?', [targetDateStr]);
+    const record = await db.get('SELECT * FROM attendance WHERE user_id = ? AND date = ?', [req.user.id, targetDateStr]);
+    
+    // Parse target date's year & month for CL stats
+    const [tYear, tMonth] = targetDateStr.split('-').map(Number);
+    const clSummary = await getUserClStats(req.user.id, tYear || today.getFullYear(), tMonth || (today.getMonth() + 1));
 
-    const canMark = !weekend && !holiday;
+    const isEmployeeRole = req.user.role === 'employee';
+    let canMark = !weekend && !holiday && (!isEmployeeRole || windowInfo.isValid);
     let restrictionReason = null;
     let attendanceData = record || null;
 
@@ -34,7 +43,7 @@ router.get('/today', authenticateToken, async (req, res) => {
       attendanceData = {
         id: `holiday-${holiday.id}`,
         user_id: req.user.id,
-        date: todayStr,
+        date: targetDateStr,
         status: 'holiday',
         holiday_name: holiday.name,
         notes: `Official Holiday: ${holiday.name}`,
@@ -42,14 +51,23 @@ router.get('/today', authenticateToken, async (req, res) => {
       };
     }
 
-    if (weekend) {
-      restrictionReason = `Today is ${dayName} (Weekend). Attendance portal only accepts attendance Monday to Friday.`;
+    if (windowInfo.isFuture) {
+      canMark = false;
+      restrictionReason = `Cannot mark attendance for future dates (${targetDateStr}).`;
+    } else if (isEmployeeRole && windowInfo.isExpired) {
+      canMark = false;
+      restrictionReason = `The 5-day attendance update window for ${targetDateStr} has expired (${windowInfo.diffDays} days ago). Attendance can only be updated within 5 days.`;
+    } else if (weekend) {
+      canMark = false;
+      restrictionReason = `${targetDateStr} is ${dayName} (Weekend). Attendance portal only accepts attendance Monday to Friday.`;
     } else if (holiday) {
-      restrictionReason = `Today is an Official Forcecraver Holiday: ${holiday.name}. Included as a working day. Attendance marking is not required.`;
+      canMark = false;
+      restrictionReason = `${targetDateStr} is an Official Forcecraver Holiday: ${holiday.name}. Included as a working day. Attendance marking is not required.`;
     }
 
     res.json({
-      date: todayStr,
+      date: targetDateStr,
+      todayDate: todayStr,
       dayName,
       isWeekend: weekend,
       isHoliday: !!holiday,
@@ -59,23 +77,41 @@ router.get('/today', authenticateToken, async (req, res) => {
       attendance: attendanceData,
       clSummary,
       timingConfig: TIMING_CONFIG,
+      windowInfo,
     });
   } catch (err) {
-    console.error('Error fetching today attendance:', err);
-    res.status(500).json({ error: 'Failed to fetch today attendance' });
+    console.error('Error fetching attendance status:', err);
+    res.status(500).json({ error: 'Failed to fetch attendance status' });
   }
 });
 
-// POST /api/attendance/mark - Self attendance marking (Monday to Friday only)
+// POST /api/attendance/mark - Self attendance marking (Monday to Friday only, strictly within 5 days)
 router.post('/mark', authenticateToken, async (req, res) => {
   const { status, half_day_slot, work_mode = 'office', notes = '', customDate } = req.body;
 
   try {
     const today = new Date();
-    const targetDateStr = customDate || formatDate(today);
+    const todayStr = formatDate(today);
+    const targetDateStr = customDate || todayStr;
     const dayName = getDayName(targetDateStr);
 
-    // 1. Mon - Fri Rule Check
+    const windowInfo = isWithinUpdateWindow(targetDateStr, 5, today);
+
+    // 0. Future Date Check
+    if (windowInfo.isFuture) {
+      return res.status(400).json({
+        error: 'Cannot mark or update attendance for future dates.',
+      });
+    }
+
+    // 1. 5-Day Window Check (Strictly for employees)
+    if (req.user.role === 'employee' && windowInfo.isExpired) {
+      return res.status(400).json({
+        error: `Attendance update window has expired. Employees have 5 days to mark or update attendance (${windowInfo.diffDays} days have passed).`,
+      });
+    }
+
+    // 2. Mon - Fri Rule Check
     if (isWeekend(targetDateStr)) {
       return res.status(400).json({
         error: `Cannot mark attendance on weekends (${dayName}). Attendance is strictly enabled Monday to Friday only.`,
@@ -86,29 +122,31 @@ router.post('/mark', authenticateToken, async (req, res) => {
     const holiday = await db.get('SELECT * FROM holidays WHERE date = ?', [targetDateStr]);
     if (holiday) {
       return res.status(400).json({
-        error: `Cannot mark attendance today. It is an official Company Holiday: ${holiday.name} (Paid Holiday).`,
+        error: `Cannot mark attendance for ${targetDateStr}. It is an official Company Holiday: ${holiday.name} (Paid Holiday).`,
       });
     }
 
-    // 2. Validate status
+    // 3. Validate status
     if (!['present', 'half_day', 'absent', 'unmarked'].includes(status)) {
       return res.status(400).json({
         error: 'Invalid attendance status. Must be "present", "half_day", "absent", or "unmarked".',
       });
     }
 
+    const [tYear, tMonth] = targetDateStr.split('-').map(Number);
+
     // Handle Unmarked (Reset attendance)
     if (status === 'unmarked') {
       await db.run('DELETE FROM attendance WHERE user_id = ? AND date = ?', [req.user.id, targetDateStr]);
-      const clSummary = await getUserClStats(req.user.id, today.getFullYear(), today.getMonth() + 1);
+      const clSummary = await getUserClStats(req.user.id, tYear || today.getFullYear(), tMonth || (today.getMonth() + 1));
       return res.json({
-        message: 'Attendance reset to Unmarked successfully.',
+        message: `Attendance for ${targetDateStr} reset to Unmarked successfully.`,
         attendance: null,
         clSummary,
       });
     }
 
-    // 3. Validate half day slot if half_day
+    // 4. Validate half day slot if half_day
     let finalSlot = null;
     let checkIn = null;
     let checkOut = null;
@@ -138,7 +176,7 @@ router.post('/mark', authenticateToken, async (req, res) => {
       checkOut = null;
     }
 
-    // 4. Insert or Update (Upsert)
+    // 5. Insert or Update (Upsert)
     const existing = await db.get('SELECT id FROM attendance WHERE user_id = ? AND date = ?', [req.user.id, targetDateStr]);
 
     if (existing) {
@@ -162,11 +200,11 @@ router.post('/mark', authenticateToken, async (req, res) => {
     }
 
     const savedRecord = await db.get('SELECT * FROM attendance WHERE user_id = ? AND date = ?', [req.user.id, targetDateStr]);
-    const updatedClSummary = await getUserClStats(req.user.id, today.getFullYear(), today.getMonth() + 1);
+    const updatedClSummary = await getUserClStats(req.user.id, tYear || today.getFullYear(), tMonth || (today.getMonth() + 1));
 
-    let successMsg = `Attendance marked successfully as ${status === 'absent' ? 'ABSENT' : status.toUpperCase()}!`;
+    let successMsg = `Attendance for ${targetDateStr} marked successfully as ${status === 'absent' ? 'ABSENT' : status.toUpperCase()}!`;
     if (status === 'half_day') {
-      successMsg = `Half Day marked (${finalSlot === '1st_half' ? '1st Half: 10 AM - 2 PM' : '2nd Half: 2 PM - 7 PM'})!`;
+      successMsg = `Attendance for ${targetDateStr}: Half Day marked (${finalSlot === '1st_half' ? '1st Half: 10 AM - 2 PM' : '2nd Half: 2 PM - 7 PM'})!`;
     }
 
     res.json({
@@ -261,6 +299,9 @@ router.get('/my-stats', authenticateToken, async (req, res) => {
         };
       }
 
+      const windowInfo = isWithinUpdateWindow(dateStr, 5, now);
+      const isEditable = !isWeekendDay && !isHolidayDay && windowInfo.isValid;
+
       calendarDays.push({
         date: dateStr,
         dayNumber: d,
@@ -271,6 +312,8 @@ router.get('/my-stats', authenticateToken, async (req, res) => {
         isHoliday: isHolidayDay,
         holidayName: holidayObj ? holidayObj.name : null,
         attendance: att,
+        windowInfo,
+        isEditable,
       });
     }
 
