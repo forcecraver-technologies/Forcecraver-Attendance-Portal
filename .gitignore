@@ -1,0 +1,10 @@
+node_modules
+client/node_modules
+dist
+client/dist
+.env
+.env.local
+server/attendance.db
+.vercel
+*.log
+.DS_Store
