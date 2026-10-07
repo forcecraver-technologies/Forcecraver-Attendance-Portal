@@ -30,13 +30,51 @@ A full-stack Attendance Portal with **Monday to Friday weekday rules**, **1st Ha
 | **Developer** | `developer@portal.com` | `dev123` | **Full Edit & Override Access** |
 | **Admin** | `admin@portal.com` | `admin123` | **View-Only Live Monitoring** |
 | **Candidate** | `rahul@portal.com` | `user123` | Self Attendance Marking |
-| **Candidate** | `priya@portal.com` | `user123` | Self Attendance Marking |
-| **Candidate** | `amit@portal.com` | `user123` | Self Attendance Marking |
 
 ---
 
-## 🚀 How to Run the Application
+## ☁️ Vercel Deployment Guide (with PostgreSQL)
+
+### Step 1: Free PostgreSQL Database Create Karein (Neon.tech - 30 seconds)
+1. [neon.tech](https://neon.tech) par jaakar free account banayein ya GitHub se login karein.
+2. Ek naya project create karein (e.g. `attendance-portal`).
+3. Dashboard par aapko **Connection string** milegi:
+   ```text
+   postgresql://username:password@ep-sample-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require
+   ```
+   *(Isko copy kar lein)*
+
+### Step 2: GitHub par code push karein
 ```bash
-npm start
+git remote add origin https://github.com/<your-username>/<your-repo-name>.git
+git branch -M main
+git push -u origin main
 ```
-Open **[http://localhost:5000](http://localhost:5000)** in your browser.
+
+### Step 3: Vercel par Deploy karein
+1. [vercel.com](https://vercel.com) par login karein aur **"Add New Project"** -> **"Import"** select karein.
+2. Apne GitHub repository ko select karein.
+3. **Environment Variables** section me ye keys add karein:
+   - `DATABASE_URL`: Aapki Neon PostgreSQL connection string
+   - `JWT_SECRET`: `forcecraver-super-secret-master-token-key-2026`
+   - `SMTP_HOST`: `smtp.hostinger.com`
+   - `SMTP_PORT`: `465`
+   - `SMTP_USER`: `sarthak@forcecraver.com`
+   - `SMTP_PASS`: `10873Fct#`
+   - `EMAIL_FROM`: `Forcecraver Attendance Portal <sarthak@forcecraver.com>`
+4. **Deploy** button dabayein!
+
+> 💡 **Auto Migration:** Database tables (`users`, `attendance`, `holidays`) aur default accounts (`developer@portal.com`, `admin@portal.com`, `rahul@portal.com`) deploy hote hi automatically create ho jayenge!
+
+---
+
+## 🚀 Local Run (Development)
+1. Apni `.env` file me `DATABASE_URL` daalein:
+   ```env
+   DATABASE_URL="postgresql://user:password@localhost:5432/attendance"
+   ```
+2. Server start karein:
+   ```bash
+   npm start
+   ```
+   Open **http://localhost:5000**
