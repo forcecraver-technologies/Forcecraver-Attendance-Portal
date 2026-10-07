@@ -36,7 +36,6 @@ async function start() {
     console.log(`   ➜ Network: http://${localIp}:${PORT}`);
     console.log(`🔑 Developer: developer@portal.com / dev123`);
     console.log(`👁️ Admin:     admin@portal.com / admin123`);
-    console.log(`👤 Employee:  rahul@portal.com / user123`);
     console.log(`=================================================`);
   });
 }

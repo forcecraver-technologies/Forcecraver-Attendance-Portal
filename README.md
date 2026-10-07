@@ -29,7 +29,6 @@ A full-stack Attendance Portal with **Monday to Friday weekday rules**, **1st Ha
 | :--- | :--- | :--- | :--- |
 | **Developer** | `developer@portal.com` | `dev123` | **Full Edit & Override Access** |
 | **Admin** | `admin@portal.com` | `admin123` | **View-Only Live Monitoring** |
-| **Candidate** | `rahul@portal.com` | `user123` | Self Attendance Marking |
 
 ---
 

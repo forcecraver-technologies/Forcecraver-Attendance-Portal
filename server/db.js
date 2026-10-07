@@ -133,14 +133,6 @@ async function runSchemaInit() {
       `, [adminPassword]);
     }
 
-    // 3. Demo Employee
-    const empCheck = await client.query("SELECT id FROM users WHERE LOWER(email) = 'rahul@portal.com'");
-    if (empCheck.rowCount === 0) {
-      await client.query(`
-        INSERT INTO users (employee_id, name, email, password, role, phone, previous_cl, monthly_cl)
-        VALUES ('EMP001', 'RAHUL SHARMA', 'rahul@portal.com', $1, 'employee', '+91 9871122334', 0.0, 1.0)
-      `, [userPassword]);
-    }
 
     // 4. Seed Official 2026 Company Holidays
     const holidays2026 = [
