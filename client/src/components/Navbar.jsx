@@ -40,13 +40,15 @@ export function Navbar({ activeTab, setActiveTab, onOpenProfile }) {
           
           {/* Brand */}
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white">
-              <Calendar className="w-4.5 h-4.5" />
-            </div>
+            <img
+              src="/logo.png"
+              alt="Forcecraver Logo"
+              className="h-8 sm:h-9 w-auto object-contain"
+            />
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-base text-slate-900 tracking-tight">
-                  Attendance Portal
+                <span className="font-bold text-base text-slate-900 tracking-tight flex items-center gap-1">
+                  Forcecraver <span className="text-blue-600 font-semibold">Attendance</span>
                 </span>
                 <span className={`text-[11px] font-medium px-2 py-0.5 rounded-md ${
                   isDeveloper
@@ -58,6 +60,9 @@ export function Navbar({ activeTab, setActiveTab, onOpenProfile }) {
                   {isDeveloper ? 'Developer' : isAdmin ? 'Admin' : 'Employee'}
                 </span>
               </div>
+              <span className="hidden sm:block text-[10px] text-slate-500 font-medium tracking-wide uppercase">
+                Attendance & Leave Management
+              </span>
             </div>
           </div>
 

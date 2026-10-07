@@ -83,10 +83,10 @@ export function HolidaysManagement() {
             </span>
           </div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight mt-1">
-            Official Company Holidays
+            Official Forcecraver Holidays
           </h1>
           <p className="text-xs text-slate-500">
-            Holidays listed here are automatically excluded from working day calculations and candidate leaves
+            Holidays falling on weekdays (Mon - Fri) are considered working days, and all employees are automatically marked Present (Paid Holiday).
           </p>
         </div>
       </div>

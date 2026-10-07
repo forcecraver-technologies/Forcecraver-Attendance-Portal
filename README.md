@@ -1,4 +1,4 @@
-# 🕒 AttendanceHub - Attendance Management Portal
+# 🕒 Forcecraver Attendance Portal
 
 A full-stack Attendance Portal with **Monday to Friday weekday rules**, **1st Half & 2nd Half shift management**, **Automatic Monthly Working Days Calculation**, and **Role-Based Access (Admin View-Only vs Developer Edit Access)**.
 

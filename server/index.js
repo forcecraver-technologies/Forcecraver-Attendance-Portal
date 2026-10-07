@@ -31,7 +31,7 @@ async function start() {
   app.listen(PORT, HOST, () => {
     const localIp = getLocalNetworkIp();
     console.log(`=================================================`);
-    console.log(`🚀 Attendance Portal Server running on network:`);
+    console.log(`🚀 Forcecraver Attendance Portal Server running on network:`);
     console.log(`   ➜ Local:   http://localhost:${PORT}`);
     console.log(`   ➜ Network: http://${localIp}:${PORT}`);
     console.log(`🔑 Developer: developer@portal.com / dev123`);

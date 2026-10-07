@@ -27,7 +27,7 @@ function MainLayout() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-600">
         <div className="flex flex-col items-center gap-2">
           <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs font-medium text-slate-500">Loading Portal...</p>
+          <p className="text-xs font-medium text-slate-500">Loading Forcecraver Portal...</p>
         </div>
       </div>
     );
@@ -66,7 +66,7 @@ function MainLayout() {
       {/* Clean Minimalist Footer */}
       <footer className="border-t border-slate-200 py-3 text-center text-xs text-slate-400 no-print bg-white">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-1 text-[11px]">
-          <p>© 2026 Attendance Portal • Weekdays (Mon - Fri, 10:00 AM - 07:00 PM)</p>
+          <p>© 2026 Forcecraver • Attendance & Leave Portal • Weekdays (Mon - Fri, 10:00 AM - 07:00 PM)</p>
           <p className="text-slate-400">1st Half: 10 AM - 2 PM | 2nd Half: 2 PM - 7 PM</p>
         </div>
       </footer>

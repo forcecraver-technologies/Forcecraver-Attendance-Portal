@@ -361,14 +361,18 @@ export function Login() {
       
       {/* Brand Header */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <div className="inline-flex w-12 h-12 rounded-2xl bg-blue-600 text-white items-center justify-center mb-3 shadow-md shadow-blue-500/20">
-          <Calendar className="w-6 h-6" />
+        <div className="inline-flex items-center justify-center p-3 bg-white border border-slate-200/90 rounded-2xl shadow-sm mb-3">
+          <img
+            src="/logo.png"
+            alt="Forcecraver Logo"
+            className="h-10 w-auto object-contain"
+          />
         </div>
-        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-          Attendance Portal
+        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight sm:text-3xl">
+          Forcecraver Attendance Portal
         </h1>
-        <p className="mt-1 text-xs text-slate-500">
-          Weekday Attendance & Management Hub (Mon - Fri, 10 AM - 7 PM)
+        <p className="mt-1 text-xs text-slate-500 font-medium">
+          Official Attendance & Leave Management Hub (Mon - Fri, 10 AM - 7 PM)
         </p>
       </div>
 

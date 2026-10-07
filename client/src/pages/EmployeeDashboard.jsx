@@ -334,7 +334,9 @@ export function EmployeeDashboard({ activeTab = 'emp-dashboard', setActiveTab })
                   }`}>
                     <CheckCircle2 className="w-4 h-4" />
                     Marked: {todayInfo.attendance.status === 'present' 
-                      ? 'Full Day Present (10 AM - 7 PM)' 
+                      ? (todayInfo.attendance.is_holiday 
+                          ? `Holiday Present (${todayInfo?.holidayInfo?.name || 'Paid Holiday'})` 
+                          : 'Full Day Present (10 AM - 7 PM)')
                       : todayInfo.attendance.status === 'half_day' 
                         ? `Half Day (${todayInfo.attendance.half_day_slot === '1st_half' ? '1st Half: 10-2 PM' : '2nd Half: 2-7 PM'})`
                         : 'Absent / Full Day Leave'}
@@ -356,9 +358,9 @@ export function EmployeeDashboard({ activeTab = 'emp-dashboard', setActiveTab })
             )}
 
             {todayInfo?.isHoliday && (
-              <div className="p-4 bg-purple-50 rounded-xl border border-purple-200 text-xs text-purple-800 flex items-center gap-2">
-                <Palmtree className="w-4 h-4 text-purple-600 shrink-0" />
-                <span>Today is a Company Holiday: <strong>{todayInfo?.holidayInfo?.name}</strong>. Attendance is not required.</span>
+              <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
+                <Palmtree className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Today is a Forcecraver Holiday: <strong>{todayInfo?.holidayInfo?.name}</strong>. It counts as a working day and everyone is automatically marked <strong>Present (Paid Working Day)</strong>.</span>
               </div>
             )}
 
@@ -813,8 +815,8 @@ export function EmployeeDashboard({ activeTab = 'emp-dashboard', setActiveTab })
                   cellStyle = 'bg-slate-50/70 border-slate-100 text-slate-400';
                   badge = 'Weekend';
                 } else if (day.isHoliday) {
-                  cellStyle = 'bg-purple-50 border-purple-200 text-purple-800';
-                  badge = day.holidayName || 'Holiday';
+                  cellStyle = 'bg-emerald-50/80 border-emerald-300 text-emerald-900 font-medium';
+                  badge = `Present (${day.holidayName || 'Holiday'})`;
                 } else if (att) {
                   if (att.status === 'present') {
                     cellStyle = 'bg-emerald-50 border-emerald-200 text-emerald-900';
@@ -909,8 +911,8 @@ export function EmployeeDashboard({ activeTab = 'emp-dashboard', setActiveTab })
                           </td>
                           <td className="py-2.5">
                             {day.isHoliday ? (
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-800 border border-purple-200">
-                                🌴 {day.holidayName || 'Holiday'}
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                🟢 Present ({day.holidayName || 'Holiday'})
                               </span>
                             ) : att ? (
                               att.status === 'present' ? (
