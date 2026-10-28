@@ -18,6 +18,14 @@ function isForceCraverEmail(email) {
   return email.trim().toLowerCase().endsWith('@forcecraver.com');
 }
 
+// GET /api/auth/login (informational endpoint for direct browser visits)
+router.get('/login', (req, res) => {
+  res.json({
+    status: 'ok',
+    message: 'Attendance Portal Auth API is active. Please send a POST request with email and password to log in, or use the portal login page.',
+  });
+});
+
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
