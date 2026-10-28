@@ -1,16 +1,12 @@
 {
-  "version": 2,
   "buildCommand": "node build.cjs",
   "outputDirectory": "dist",
+  "functions": {
+    "api/**": {
+      "includeFiles": "server/**"
+    }
+  },
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/[...all]"
-    },
-    {
-      "source": "/api",
-      "destination": "/api/index"
-    },
     {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
