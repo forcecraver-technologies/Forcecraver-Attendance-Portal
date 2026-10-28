@@ -7,7 +7,11 @@ const isRoot = fs.existsSync(path.join(__dirname, 'client'));
 const clientDir = isRoot ? path.join(__dirname, 'client') : __dirname;
 
 console.log('📦 Installing client dependencies in:', clientDir);
-execSync('npm install', { cwd: clientDir, stdio: 'inherit' });
+execSync('npm install --include=dev', {
+  cwd: clientDir,
+  stdio: 'inherit',
+  env: { ...process.env, NODE_ENV: 'development' },
+});
 
 console.log('⚡ Building Vite frontend in:', clientDir);
 execSync('npm run build', { cwd: clientDir, stdio: 'inherit' });
