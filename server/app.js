@@ -15,9 +15,15 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Normalize req.url so that /api prefix is always present, even if Vercel serverless rewrites strip it
+// Normalize req.url so that routes match reliably on Vercel and local
 app.use((req, res, next) => {
-  if (req.url && !req.url.startsWith('/api')) {
+  const matchedPath = req.headers['x-matched-path'];
+  if (matchedPath && matchedPath.startsWith('/api') && !matchedPath.includes('index.js')) {
+    req.url = matchedPath;
+  } else if (req.url && req.url.startsWith('/api/index.js')) {
+    const cleaned = req.url.replace('/api/index.js', '') || '/';
+    req.url = cleaned.startsWith('/api') ? cleaned : `/api${cleaned}`;
+  } else if (req.url && !req.url.startsWith('/api')) {
     req.url = `/api${req.url}`;
   }
   next();
