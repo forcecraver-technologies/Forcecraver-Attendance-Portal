@@ -23,14 +23,7 @@ A full-stack Attendance Portal with **Monday to Friday weekday rules**, **1st Ha
 
 ---
 
-## 🔑 Login Accounts (1-Click Buttons on Login Page)
 
-| Role | Email | Password | Permissions |
-| :--- | :--- | :--- | :--- |
-| **Developer** | `developer@portal.com` | `dev123` | **Full Edit & Override Access** |
-| **Admin** | `admin@portal.com` | `admin123` | **View-Only Live Monitoring** |
-
----
 
 ## ☁️ Vercel Deployment Guide (with PostgreSQL)
 
@@ -38,9 +31,7 @@ A full-stack Attendance Portal with **Monday to Friday weekday rules**, **1st Ha
 1. [neon.tech](https://neon.tech) par jaakar free account banayein ya GitHub se login karein.
 2. Ek naya project create karein (e.g. `attendance-portal`).
 3. Dashboard par aapko **Connection string** milegi:
-   ```text
-   postgresql://username:password@ep-sample-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require
-   ```
+
    *(Isko copy kar lein)*
 
 ### Step 2: GitHub par code push karein
