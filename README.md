@@ -7,11 +7,11 @@ A full-stack Attendance Portal with **Monday to Friday weekday rules**, **1st Ha
 ## 🌟 Key Updates & Features
 
 ### 1. 👥 Role Permissions
-- 🛠️ **Developer (`developer@portal.com` / `dev123`)**:
+- 🛠️ **Developer **:
   - Full Access: Can view live monitor, edit/override attendance records, add/edit/delete candidates, and manage company holidays.
-- 👁️ **Admin (`admin@portal.com` / `admin123`)**:
+- 👁️ **Admin **:
   - **View-Only Access**: Can monitor live attendance, see who marked vs who hasn't, view monthly matrix, and export CSV/PDF reports. (Cannot edit or modify records).
-- 👤 **Candidate / Employee (`rahul@portal.com` / `user123`)**:
+- 👤 **Candidate / Employee **:
   - Self-attendance update for today (Monday to Friday only).
   - Can choose **Full Day**, **1st Half (10 AM - 2 PM)**, **2nd Half (2 PM - 7 PM)**, **Absent**, or **Unmarked (Reset)**.
 
