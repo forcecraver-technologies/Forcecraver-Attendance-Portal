@@ -15,6 +15,14 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Normalize req.url so that /api prefix is always present, even if Vercel serverless rewrites strip it
+app.use((req, res, next) => {
+  if (req.url && !req.url.startsWith('/api')) {
+    req.url = `/api${req.url}`;
+  }
+  next();
+});
+
 // Lazy DB initialization middleware for serverless/local environments
 app.use(async (req, res, next) => {
   if (req.path.startsWith('/api') && req.path !== '/api/health') {
@@ -23,20 +31,25 @@ app.use(async (req, res, next) => {
     } catch (err) {
       console.error('Database connection error in request middleware:', err.message);
       return res.status(500).json({
-        error: 'Database connection failed. Please ensure PostgreSQL DATABASE_URL is properly configured.',
+        error: 'Database connection failed. Please ensure PostgreSQL DATABASE_URL is properly configured in Vercel Environment Variables.',
       });
     }
   }
   next();
 });
 
-// API Routes
+// API Routes (mount both with and without /api to guarantee matching regardless of serverless path rewriting)
 app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes);
+
 app.use('/api/attendance', attendanceRoutes);
+app.use('/attendance', attendanceRoutes);
+
 app.use('/api/admin', adminRoutes);
+app.use('/admin', adminRoutes);
 
 // Health check
-app.get('/api/health', (req, res) => {
+app.get(['/api/health', '/health'], (req, res) => {
   res.json({
     status: 'ok',
     database: process.env.DATABASE_URL ? 'PostgreSQL Configured' : 'Missing DATABASE_URL',
@@ -52,7 +65,7 @@ app.use(express.static(clientDistPath));
 // Fallback for SPA routing in Express
 app.use((req, res) => {
   if (req.path.startsWith('/api')) {
-    return res.status(404).json({ error: 'API route not found' });
+    return res.status(404).json({ error: `API route not found: ${req.method} ${req.originalUrl || req.url}` });
   }
   const indexHtml = path.join(clientDistPath, 'index.html');
   res.sendFile(indexHtml, (err) => {

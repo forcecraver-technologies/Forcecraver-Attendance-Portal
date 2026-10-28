@@ -18,10 +18,20 @@ async function request(endpoint, options = {}) {
     headers,
   });
 
-  const data = await response.json().catch(() => ({}));
+  const contentType = response.headers.get('content-type') || '';
+  let data = {};
+  if (contentType.includes('application/json')) {
+    data = await response.json().catch(() => ({}));
+  } else {
+    const text = await response.text().catch(() => '');
+    if (text) {
+      data = { error: text };
+    }
+  }
 
   if (!response.ok) {
-    const error = new Error(data.error || data.message || 'Request failed');
+    const errorMsg = data.error || data.message || `Request failed with status ${response.status} (${response.statusText || 'Error'})`;
+    const error = new Error(errorMsg);
     error.status = response.status;
     error.data = data;
     throw error;
