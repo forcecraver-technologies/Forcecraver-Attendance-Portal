@@ -550,39 +550,6 @@ export function Login() {
                   Go to Login Setup
                 </button>
               </div>
-
-              {/* Quick Access Roles for Admin & Developer */}
-              <div className="pt-3 border-t border-slate-100">
-                <p className="text-[10px] font-semibold text-slate-400 mb-2 uppercase tracking-wider text-center">
-                  Quick Access Login Roles
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail('admin@portal.com');
-                      setPassword('admin123');
-                      setError(null);
-                    }}
-                    className="py-1.5 px-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-[11px] font-semibold text-slate-700 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>Admin User</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail('developer@portal.com');
-                      setPassword('dev123');
-                      setError(null);
-                    }}
-                    className="py-1.5 px-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-[11px] font-semibold text-slate-700 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                    <span>Developer Lead</span>
-                  </button>
-                </div>
-              </div>
             </form>
           )}
 
