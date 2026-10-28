@@ -47,11 +47,11 @@ git push -u origin main
 3. **Environment Variables** section me ye keys add karein:
    - `DATABASE_URL`: Aapki Neon PostgreSQL connection string
    - `JWT_SECRET`: `forcecraver-super-secret-master-token-key-2026`
-   - `SMTP_HOST`: `smtp.hostinger.com`
+   - `SMTP_HOST`: ``
    - `SMTP_PORT`: `465`
-   - `SMTP_USER`: `sarthak@forcecraver.com`
-   - `SMTP_PASS`: `10873Fct#`
-   - `EMAIL_FROM`: `Forcecraver Attendance Portal <sarthak@forcecraver.com>`
+   - `SMTP_USER`: ``
+   - `SMTP_PASS`: ``
+   - `EMAIL_FROM`: `Forcecraver Attendance Portal `
 4. **Deploy** button dabayein!
 
 > 💡 **Auto Migration:** Database tables (`users`, `attendance`, `holidays`) aur default accounts (`developer@portal.com`, `admin@portal.com`, `rahul@portal.com`) deploy hote hi automatically create ho jayenge!
